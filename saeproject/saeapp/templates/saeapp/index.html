@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Suivi des temperatures</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f5f7fb;
+            --surface: #ffffff;
+            --surface-2: #eef3f8;
+            --text: #1f2933;
+            --muted: #66788a;
+            --line: #d9e2ec;
+            --primary: #1565c0;
+            --primary-2: #0f4c81;
+            --accent: #e67e22;
+            --success: #26845b;
+            --shadow: 0 16px 36px rgba(31, 41, 51, 0.09);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        button,
+        input,
+        select,
+        a {
+            font: inherit;
+        }
+
+        .shell {
+            width: min(1180px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 28px 0 40px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 24px;
+        }
+
+        .brand h1 {
+            margin: 0 0 6px;
+            font-size: clamp(1.7rem, 3vw, 2.8rem);
+            line-height: 1.05;
+            letter-spacing: 0;
+        }
+
+        .brand p {
+            margin: 0;
+            color: var(--muted);
+            max-width: 700px;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            color: var(--success);
+            font-weight: 700;
+            background: #e8f5ef;
+            border: 1px solid #bbdfce;
+            border-radius: 999px;
+            padding: 10px 14px;
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .filters {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 18px;
+            margin-bottom: 18px;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: minmax(140px, .8fr) minmax(180px, 1.4fr) repeat(3, minmax(140px, 1fr)) minmax(150px, .8fr);
+            gap: 14px;
+            align-items: end;
+        }
+
+        label {
+            display: grid;
+            gap: 7px;
+            color: var(--muted);
+            font-size: .88rem;
+            font-weight: 700;
+        }
+
+        input,
+        select {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            background: #fff;
+            color: var(--text);
+            padding: 11px 12px;
+            min-height: 44px;
+        }
+
+        input:focus,
+        select:focus {
+            outline: 3px solid rgba(21, 101, 192, .16);
+            border-color: var(--primary);
+        }
+
+        .checkline {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 44px;
+            padding: 0 2px;
+            color: var(--text);
+        }
+
+        .checkline input {
+            width: 18px;
+            min-height: 18px;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 42px;
+            border: 1px solid transparent;
+            border-radius: 7px;
+            padding: 10px 14px;
+            color: #fff;
+            background: var(--primary);
+            text-decoration: none;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: var(--primary-2);
+        }
+
+        .btn.secondary {
+            color: var(--text);
+            background: var(--surface-2);
+            border-color: var(--line);
+        }
+
+        .btn.secondary:hover {
+            background: #e2eaf3;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .metric,
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: 0 10px 24px rgba(31, 41, 51, 0.06);
+        }
+
+        .metric {
+            padding: 18px;
+        }
+
+        .metric span {
+            display: block;
+            color: var(--muted);
+            font-size: .86rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .metric strong {
+            font-size: 2rem;
+            letter-spacing: 0;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.6fr) minmax(300px, .9fr);
+            gap: 18px;
+            align-items: start;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 1.05rem;
+            letter-spacing: 0;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 650px;
+        }
+
+        th,
+        td {
+            padding: 13px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--line);
+            white-space: nowrap;
+        }
+
+        th {
+            color: var(--muted);
+            font-size: .78rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            background: #fafbfd;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .sensor {
+            font-weight: 700;
+        }
+
+        .temperature {
+            color: var(--accent);
+            font-weight: 800;
+        }
+
+        .chart-wrap {
+            padding: 18px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 270px;
+            display: block;
+        }
+
+        .averages {
+            display: grid;
+            gap: 10px;
+            padding: 0 18px 18px;
+        }
+
+        .average-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 14px;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            background: #fbfcfe;
+        }
+
+        .average-row span {
+            color: var(--muted);
+            font-size: .85rem;
+        }
+
+        .average-row strong {
+            color: var(--primary-2);
+            font-size: 1.15rem;
+        }
+
+        .empty {
+            padding: 34px 18px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        @media (max-width: 920px) {
+            .topbar,
+            .main-grid {
+                grid-template-columns: 1fr;
+                display: grid;
+            }
+
+            .filter-grid,
+            .metrics {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .status {
+                justify-self: start;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .shell {
+                width: min(100% - 20px, 1180px);
+                padding-top: 18px;
+            }
+
+            .filter-grid,
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .actions .btn {
+                width: 100%;
+            }
+
+            .panel-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <header class="topbar">
+            <div class="brand">
+                <h1>Suivi des temperatures</h1>
+                <p>Tableau filtrable, graphique, export CSV et moyenne par capteur.</p>
+            </div>
+            <div class="status">
+                <span class="status-dot" aria-hidden="true"></span>
+                {% if auto_refresh %}Auto {{ refresh_seconds }}s{% else %}Actualisation manuelle{% endif %}
+            </div>
+        </header>
+
+        <form class="filters" method="get">
+            <div class="filter-grid">
+                <label>
+                    Maison
+                    <select name="house">
+                        <option value="" {% if not house_filter %}selected{% endif %}>Toutes</option>
+                        {% for house_id, house_label, house_model in houses %}
+                            <option value="{{ house_id }}" {% if house_filter == house_id %}selected{% endif %}>{{ house_label }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>
+                    Nom ou ID du capteur
+                    <input type="search" name="sensor" value="{{ sensor_filter }}" placeholder="12345, Capteur1, Bureau">
+                </label>
+                <label>
+                    Date debut
+                    <input type="date" name="start" value="{{ start_filter }}">
+                </label>
+                <label>
+                    Date fin
+                    <input type="date" name="end" value="{{ end_filter }}">
+                </label>
+                <label>
+                    Rafraichissement
+                    <input type="number" name="refresh" value="{{ refresh_seconds }}" min="5" step="5">
+                </label>
+                <label class="checkline">
+                    <input type="checkbox" name="auto_refresh" {% if auto_refresh %}checked{% endif %}>
+                    Auto
+                </label>
+            </div>
+            <div class="actions">
+                <button class="btn" type="submit">Filtrer</button>
+                <a class="btn secondary" href="{% url 'index' %}">Retirer les filtres</a>
+                <a class="btn secondary" href="{% url 'export_csv' %}?{{ request.GET.urlencode }}">Exporter CSV</a>
+            </div>
+        </form>
+
+        <section class="metrics" aria-label="Indicateurs">
+            <div class="metric">
+                <span>Mesures affichees</span>
+                <strong>{{ total_count }}</strong>
+            </div>
+            <div class="metric">
+                <span>Moyenne globale</span>
+                <strong>{% if global_average != None %}{{ global_average }} deg C{% else %}-{% endif %}</strong>
+            </div>
+            <div class="metric">
+                <span>Capteurs</span>
+                <strong>{{ average_by_sensor|length }}</strong>
+            </div>
+        </section>
+
+        <section class="main-grid">
+            <article class="panel">
+                <div class="panel-header">
+                    <h2>Donnees temperature</h2>
+                    <span>{{ total_count }} resultat{% if total_count > 1 %}s{% endif %}</span>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Maison</th>
+                                <th>Capteur</th>
+                                <th>Nom / piece</th>
+                                <th>Date</th>
+                                <th>Heure</th>
+                                <th>Temperature</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rows %}
+                                <tr>
+                                    <td>{{ row.maison }}</td>
+                                    <td class="sensor">{{ row.Id }}</td>
+                                    <td>{{ row.piece }}</td>
+                                    <td>{{ row.date }}</td>
+                                    <td>{{ row.heure }}</td>
+                                    <td class="temperature">{{ row.temp }} deg C</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td class="empty" colspan="6">Aucune donnee pour ces filtres.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+
+            <aside class="panel">
+                <div class="panel-header">
+                    <h2>Graphique</h2>
+                    <span>Temperature par mesure</span>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="temperatureChart" width="640" height="320"></canvas>
+                </div>
+                <div class="averages">
+                    {% for average in average_by_sensor %}
+                        <div class="average-row">
+                            <div>
+                                <b>{{ average.maison }} - {{ average.sensor }}</b><br>
+                                <span>{{ average.piece }} - {{ average.count }} mesure{% if average.count > 1 %}s{% endif %}</span>
+                            </div>
+                            <strong>{{ average.average }} deg C</strong>
+                        </div>
+                    {% empty %}
+                        <div class="empty">Aucune moyenne disponible.</div>
+                    {% endfor %}
+                </div>
+            </aside>
+        </section>
+    </main>
+
+    {{ rows|json_script:"temperature-data" }}
+    <script>
+        const rows = JSON.parse(document.getElementById("temperature-data").textContent);
+        const canvas = document.getElementById("temperatureChart");
+        const ctx = canvas.getContext("2d");
+
+        function drawChart() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const padding = { top: 22, right: 18, bottom: 54, left: 48 };
+            const plotWidth = width - padding.left - padding.right;
+            const plotHeight = height - padding.top - padding.bottom;
+
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, width, height);
+
+            if (!rows.length) {
+                ctx.fillStyle = "#66788a";
+                ctx.font = "16px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText("Aucune donnee", width / 2, height / 2);
+                return;
+            }
+
+            const values = rows.map(row => Number(row.temp));
+            const min = Math.floor(Math.min(...values) - 1);
+            const max = Math.ceil(Math.max(...values) + 1);
+            const range = Math.max(max - min, 1);
+
+            ctx.strokeStyle = "#d9e2ec";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding.left, padding.top);
+            ctx.lineTo(padding.left, padding.top + plotHeight);
+            ctx.lineTo(padding.left + plotWidth, padding.top + plotHeight);
+            ctx.stroke();
+
+            ctx.fillStyle = "#66788a";
+            ctx.font = "12px Arial";
+            ctx.textAlign = "right";
+            for (let tick = 0; tick <= 4; tick += 1) {
+                const value = min + (range * tick / 4);
+                const y = padding.top + plotHeight - ((value - min) / range) * plotHeight;
+                ctx.fillText(`${value.toFixed(1)} deg`, padding.left - 8, y + 4);
+                ctx.strokeStyle = "#eef3f8";
+                ctx.beginPath();
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(padding.left + plotWidth, y);
+                ctx.stroke();
+            }
+
+            const points = rows.map((row, index) => {
+                const x = rows.length === 1
+                    ? padding.left + plotWidth / 2
+                    : padding.left + (index / (rows.length - 1)) * plotWidth;
+                const y = padding.top + plotHeight - ((Number(row.temp) - min) / range) * plotHeight;
+                return { x, y, row };
+            });
+
+            ctx.strokeStyle = "#1565c0";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            points.forEach((point, index) => {
+                if (index === 0) {
+                    ctx.moveTo(point.x, point.y);
+                } else {
+                    ctx.lineTo(point.x, point.y);
+                }
+            });
+            ctx.stroke();
+
+            points.forEach(point => {
+                ctx.fillStyle = "#e67e22";
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.fillStyle = "#66788a";
+            ctx.font = "11px Arial";
+            ctx.textAlign = "center";
+            points.forEach((point, index) => {
+                if (index % Math.ceil(points.length / 5) === 0 || index === points.length - 1) {
+                    ctx.fillText(point.row.date, point.x, height - 26);
+                    ctx.fillText(`${point.row.maison_id}-${point.row.Id}`, point.x, height - 10);
+                }
+            });
+        }
+
+        drawChart();
+
+        {% if auto_refresh %}
+            window.setTimeout(() => {
+                window.location.reload();
+            }, Math.max(Number("{{ refresh_seconds }}"), 5) * 1000);
+        {% endif %}
+    </script>
+</body>
+</html>
