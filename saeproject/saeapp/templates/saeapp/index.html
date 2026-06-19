@@ -287,6 +287,29 @@
             padding: 0 18px 18px;
         }
 
+        .sensor-editor {
+            display: grid;
+            gap: 10px;
+            padding: 0 18px 18px;
+        }
+
+        .sensor-form {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: end;
+            padding: 12px;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            background: #fbfcfe;
+        }
+
+        .sensor-form span {
+            color: var(--muted);
+            font-size: .82rem;
+            font-weight: 700;
+        }
+
         .average-row {
             display: grid;
             grid-template-columns: minmax(0, 1fr) auto;
@@ -349,6 +372,10 @@
             .panel-header {
                 align-items: flex-start;
                 flex-direction: column;
+            }
+
+            .sensor-form {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -443,7 +470,7 @@
                                 <tr>
                                     <td>{{ row.maison }}</td>
                                     <td class="sensor">{{ row.Id }}</td>
-                                    <td>{{ row.piece }}</td>
+                                    <td>{{ row.display_name }}</td>
                                     <td>{{ row.date }}</td>
                                     <td>{{ row.heure }}</td>
                                     <td class="temperature">{{ row.temp }} deg C</td>
@@ -466,12 +493,37 @@
                 <div class="chart-wrap">
                     <canvas id="temperatureChart" width="640" height="320"></canvas>
                 </div>
+                <div class="panel-header">
+                    <h2>Noms des capteurs</h2>
+                    <span>Modifier l'affichage</span>
+                </div>
+                <div class="sensor-editor">
+                    {% for sensor in sensor_editor_rows %}
+                        <form class="sensor-form" method="post" action="{% url 'rename_sensor' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="house_id" value="{{ sensor.maison_id }}">
+                            <input type="hidden" name="sensor_id" value="{{ sensor.sensor }}">
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <label>
+                                <span>{{ sensor.maison }} - {{ sensor.sensor }}</span>
+                                <input type="text" name="display_name" value="{{ sensor.display_name }}" placeholder="{{ sensor.piece }}" maxlength="80">
+                            </label>
+                            <button class="btn" type="submit">Enregistrer</button>
+                        </form>
+                    {% empty %}
+                        <div class="empty">Aucun capteur a renommer.</div>
+                    {% endfor %}
+                </div>
+                <div class="panel-header">
+                    <h2>Moyennes</h2>
+                    <span>Par capteur</span>
+                </div>
                 <div class="averages">
                     {% for average in average_by_sensor %}
                         <div class="average-row">
                             <div>
-                                <b>{{ average.maison }} - {{ average.sensor }}</b><br>
-                                <span>{{ average.piece }} - {{ average.count }} mesure{% if average.count > 1 %}s{% endif %}</span>
+                                <b>{{ average.maison }} - {{ average.display_name }}</b><br>
+                                <span>{{ average.sensor }} - {{ average.count }} mesure{% if average.count > 1 %}s{% endif %}</span>
                             </div>
                             <strong>{{ average.average }} deg C</strong>
                         </div>
@@ -568,7 +620,7 @@
             points.forEach((point, index) => {
                 if (index % Math.ceil(points.length / 5) === 0 || index === points.length - 1) {
                     ctx.fillText(point.row.date, point.x, height - 26);
-                    ctx.fillText(`${point.row.maison_id}-${point.row.Id}`, point.x, height - 10);
+                    ctx.fillText(`${point.row.maison_id}-${point.row.display_name}`, point.x, height - 10);
                 }
             });
         }

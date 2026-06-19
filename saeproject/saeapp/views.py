@@ -3,8 +3,11 @@ from datetime import datetime
 
 from django.db import DatabaseError
 from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.shortcuts import render
+from django.urls import reverse
 
+from .models import SensorName
 from .models import TemperatureDataM1
 from .models import TemperatureDataM2
 
@@ -39,6 +42,7 @@ def _row_date(row):
 
 def _load_temperature_rows(house_filter=""):
     rows = []
+    custom_names = _sensor_name_map()
 
     for house_id, house_label, model in HOUSE_SOURCES:
         if house_filter and house_filter != house_id:
@@ -51,13 +55,16 @@ def _load_temperature_rows(house_filter=""):
                 .values("capteur_Id", "piece", "date", "heure", "temp")
             )
             for row in queryset:
+                sensor_id = row["capteur_Id"]
+                display_name = custom_names.get((house_id, sensor_id), row["piece"])
                 rows.append(
                     {
                         "maison_id": house_id,
                         "maison": house_label,
-                        "Id": row["capteur_Id"],
-                        "capteur_Id": row["capteur_Id"],
+                        "Id": sensor_id,
+                        "capteur_Id": sensor_id,
                         "piece": row["piece"],
+                        "display_name": display_name,
                         "date": row["date"],
                         "heure": row["heure"],
                         "temp": row["temp"],
@@ -67,6 +74,16 @@ def _load_temperature_rows(house_filter=""):
             continue
 
     return rows
+
+
+def _sensor_name_map():
+    try:
+        return {
+            (name.house_id, name.capteur_Id): name.display_name
+            for name in SensorName.objects.all()
+        }
+    except DatabaseError:
+        return {}
 
 
 def _filtered_rows(request):
@@ -81,7 +98,11 @@ def _filtered_rows(request):
         rows = [
             row
             for row in rows
-            if sensor_lower in row["Id"].lower() or sensor_lower in row["piece"].lower()
+            if (
+                sensor_lower in row["Id"].lower()
+                or sensor_lower in row["piece"].lower()
+                or sensor_lower in row["display_name"].lower()
+            )
         ]
 
     if start:
@@ -112,6 +133,7 @@ def _average_by_sensor(rows):
                 "total": 0,
                 "count": 0,
                 "piece": row["piece"],
+                "display_name": row["display_name"],
                 "maison": row["maison"],
                 "sensor": row["Id"],
             },
@@ -124,11 +146,29 @@ def _average_by_sensor(rows):
             "maison": values["maison"],
             "sensor": values["sensor"],
             "piece": values["piece"],
+            "display_name": values["display_name"],
             "average": round(values["total"] / values["count"], 1),
             "count": values["count"],
         }
         for values in grouped.values()
     ]
+
+
+def _sensor_editor_rows(rows):
+    sensors = {}
+    for row in rows:
+        key = (row["maison_id"], row["Id"])
+        sensors.setdefault(
+            key,
+            {
+                "maison_id": row["maison_id"],
+                "maison": row["maison"],
+                "sensor": row["Id"],
+                "piece": row["piece"],
+                "display_name": row["display_name"],
+            },
+        )
+    return list(sensors.values())
 
 
 def index(request):
@@ -139,6 +179,7 @@ def index(request):
     context = {
         "rows": rows,
         "average_by_sensor": average_by_sensor,
+        "sensor_editor_rows": _sensor_editor_rows(rows),
         "global_average": round(sum(float(row["temp"]) for row in rows) / len(rows), 1) if rows else None,
         "houses": HOUSE_SOURCES,
         "house_filter": request.GET.get("house", "").strip(),
@@ -152,14 +193,50 @@ def index(request):
     return render(request, "saeapp/index.html", context)
 
 
+def rename_sensor(request):
+    if request.method != "POST":
+        return redirect("index")
+
+    house_id = request.POST.get("house_id", "").strip()
+    sensor_id = request.POST.get("sensor_id", "").strip()
+    display_name = request.POST.get("display_name", "").strip()
+    next_url = request.POST.get("next", "").strip() or reverse("index")
+    if not next_url.startswith("/") or next_url.startswith("//"):
+        next_url = reverse("index")
+
+    if not house_id or not sensor_id:
+        return redirect(next_url)
+
+    if display_name:
+        SensorName.objects.update_or_create(
+            house_id=house_id,
+            capteur_Id=sensor_id,
+            defaults={"display_name": display_name},
+        )
+    else:
+        SensorName.objects.filter(house_id=house_id, capteur_Id=sensor_id).delete()
+
+    return redirect(next_url)
+
+
 def export_csv(request):
     rows = _filtered_rows(request)
     response = HttpResponse(content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = 'attachment; filename="temperatures.csv"'
 
     writer = csv.writer(response)
-    writer.writerow(["maison", "capteur", "piece", "date", "heure", "temperature"])
+    writer.writerow(["maison", "capteur", "nom", "piece", "date", "heure", "temperature"])
     for row in rows:
-        writer.writerow([row["maison"], row["Id"], row["piece"], row["date"], row["heure"], row["temp"]])
+        writer.writerow(
+            [
+                row["maison"],
+                row["Id"],
+                row["display_name"],
+                row["piece"],
+                row["date"],
+                row["heure"],
+                row["temp"],
+            ]
+        )
 
     return response
