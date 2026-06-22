@@ -1,0 +1,54 @@
+{% load static %}
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Capteurs</title>
+    <link rel="stylesheet" href="{% static 'saeapp/style.css' %}">
+</head>
+<body>
+    <main>
+        <h1>Capteurs</h1>
+        <nav>
+            <a href="{% url 'index' %}">Retour au tableau</a>
+            <a href="{% url 'ajouter_capteur' %}">Ajouter un capteur</a>
+        </nav>
+
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nom</th>
+                        <th>Piece</th>
+                        <th>Emplacement</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for capteur in capteurs %}
+                        <tr>
+                            <td>{{ capteur.id }}</td>
+                            <td>{{ capteur.nom }}</td>
+                            <td>{{ capteur.piece }}</td>
+                            <td>{{ capteur.emplacement }}</td>
+                            <td>
+                                <a href="{% url 'modifier_capteur' capteur.id %}">Modifier</a>
+                                <form class="inline" method="post" action="{% url 'supprimer_capteur' capteur.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit">Supprimer</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5">Aucun capteur.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>
