@@ -10,6 +10,9 @@ db = mysql.connector.connect(
 
 cursor = db.cursor()
 
+# Cache des capteurs déjà vérifiés
+capteurs_connus = []
+
 with open("/opt/python/data.csv", "r") as f:
     lignes = f.readlines()
 
@@ -29,26 +32,30 @@ for ligne in lignes:
             cle, valeur = champ.split("=", 1)
             infos[cle] = valeur
 
-        # Vérifie si le capteur existe
-        cursor.execute(
-            "SELECT id FROM saeapp_Capteur WHERE id=%s",
-            (infos["Id"],)
-        )
+        # Vérifie le capteur seulement la première fois
+        if infos["Id"] not in capteurs_connus:
 
-        if cursor.fetchone() is None:
             cursor.execute(
-                """
-                INSERT INTO saeapp_Capteur
-                (id, nom, piece, emplacement)
-                VALUES (%s,%s,%s,%s)
-                """,
-                (
-                    infos["Id"],
-                    "Capteur_" + infos["Id"],
-                    infos["piece"],
-                    ""
-                )
+                "SELECT id FROM saeapp_Capteur WHERE id=%s",
+                (infos["Id"],)
             )
+
+            if cursor.fetchone() is None:
+                cursor.execute(
+                    """
+                    INSERT INTO saeapp_Capteur
+                    (id, nom, piece, emplacement)
+                    VALUES (%s,%s,%s,%s)
+                    """,
+                    (
+                        infos["Id"],
+                        "Capteur_" + infos["Id"],
+                        infos["piece"],
+                        ""
+                    )
+                )
+
+            capteurs_connus.append(infos["Id"])
 
         timestamp = datetime.strptime(
             infos["date"] + " " + infos["time"],
@@ -83,5 +90,5 @@ db.commit()
 cursor.close()
 db.close()
 
-# vide le cache
+# Vide le fichier CSV
 open("/opt/python/data.csv", "w").close()
