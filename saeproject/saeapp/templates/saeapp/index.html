@@ -1,14 +1,12 @@
 {% load static %}
 <!doctype html>
 <html lang="fr">
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Temperatures</title>
     <link rel="stylesheet" href="{% static 'saeapp/style.css' %}">
 </head>
-
 <body>
     <main>
         <h1>Suivi des temperatures</h1>
@@ -26,9 +24,9 @@
                 <select name="house">
                     <option value="">Toutes</option>
                     {% for maison in maisons %}
-                    <option value="{{ maison.id }}" {% if filtre_maison==maison.id %}selected{% endif %}>
-                        {{ maison.nom }}
-                    </option>
+                        <option value="{{ maison.id }}" {% if filtre_maison == maison.id %}selected{% endif %}>
+                            {{ maison.nom }}
+                        </option>
                     {% endfor %}
                 </select>
             </p>
@@ -66,6 +64,7 @@
 
         <h2>Graphique des temperatures</h2>
         <canvas id="graphique" width="1000" height="300"></canvas>
+        <div id="legende"></div>
 
         <h2>Resultats</h2>
         <p>
@@ -90,20 +89,20 @@
                 </thead>
                 <tbody>
                     {% for mesure in mesures %}
-                    <tr>
-                        <td>{{ mesure.maison }}</td>
-                        <td>{{ mesure.capteur_id }}</td>
-                        <td>{{ mesure.nom_affiche }}</td>
-                        <td>{{ mesure.piece }}</td>
-                        <td>{{ mesure.emplacement }}</td>
-                        <td>{{ mesure.date }}</td>
-                        <td>{{ mesure.heure }}</td>
-                        <td>{{ mesure.temperature }} °C</td>
-                    </tr>
+                        <tr>
+                            <td>{{ mesure.maison }}</td>
+                            <td>{{ mesure.capteur_id }}</td>
+                            <td>{{ mesure.nom_affiche }}</td>
+                            <td>{{ mesure.piece }}</td>
+                            <td>{{ mesure.emplacement }}</td>
+                            <td>{{ mesure.date }}</td>
+                            <td>{{ mesure.heure }}</td>
+                            <td>{{ mesure.temperature }} °C</td>
+                        </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="8">Aucune mesure.</td>
-                    </tr>
+                        <tr>
+                            <td colspan="8">Aucune mesure.</td>
+                        </tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -112,61 +111,111 @@
         <h2>Moyennes par capteur</h2>
         <ul>
             {% for moyenne in moyennes %}
-            <li>
-                {{ moyenne.maison }} — {{ moyenne.nom_affiche }} :
-                {{ moyenne.moyenne }} °C
-            </li>
+                <li>
+                    {{ moyenne.maison }} — {{ moyenne.nom_affiche }} :
+                    {{ moyenne.moyenne }} °C
+                </li>
             {% empty %}
-            <li>Aucune moyenne.</li>
+                <li>Aucune moyenne.</li>
             {% endfor %}
         </ul>
     </main>
 
     {{ mesures|json_script:"mesures-json" }}
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <script>
-        const mesures = JSON.parse(
+        let mesures = JSON.parse(
             document.getElementById("mesures-json").textContent
         );
+        let canvas = document.getElementById("graphique");
+        let dessin = canvas.getContext("2d");
+        let legende = document.getElementById("legende");
+        let couleurs = [
+            "#005bbb",
+            "#d33f49",
+            "#228b22",
+            "#e67e22",
+            "#7b2cbf",
+            "#008b8b",
+            "#c2185b",
+            "#6b4f2c"
+        ];
 
-        const labels = mesures.map((_, i) => i + 1);
-        const temperatures = mesures.map(m => Number(m.temperature));
+        if (mesures.length > 0) {
+            let temperatures = [];
+            let groupes = {};
+            let largeur = canvas.width - 80;
+            let hauteur = canvas.height - 60;
 
-        new Chart(document.getElementById("graphique"), {
-            type: "line",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: "Température (°C)",
-                    data: temperatures,
-                    borderColor: "blue",
-                    fill: false,
-                    tension: 0.2
-                }]
-            },
-            options: {
-                responsive: false,
-                scales: {
-                    y: {
-                        title: {
-                            display: true,
-                            text: "°C"
-                        }
-                    }
+            for (let i = 0; i < mesures.length; i++) {
+                let mesure = mesures[i];
+                let cle = mesure.maison_id + "-" + mesure.capteur_id;
+
+                temperatures.push(Number(mesure.temperature));
+
+                if (!groupes[cle]) {
+                    groupes[cle] = [];
                 }
+
+                groupes[cle].push(mesure);
             }
-        });
+
+            let minimum = Math.min(...temperatures) - 1;
+            let maximum = Math.max(...temperatures) + 1;
+            let numero = 0;
+
+            for (let cle in groupes) {
+                let groupe = groupes[cle];
+                let couleur = couleurs[numero % couleurs.length];
+                groupe.reverse();
+
+                dessin.beginPath();
+                dessin.strokeStyle = couleur;
+                dessin.lineWidth = 2;
+
+                for (let index = 0; index < groupe.length; index++) {
+                    let mesure = groupe[index];
+                    let x = 50 + (index * largeur / Math.max(groupe.length - 1, 1));
+                    let y = 20 + hauteur - (
+                        (Number(mesure.temperature) - minimum)
+                        / (maximum - minimum)
+                        * hauteur
+                    );
+
+                    if (index === 0) {
+                        dessin.moveTo(x, y);
+                    } else {
+                        dessin.lineTo(x, y);
+                    }
+
+                    dessin.fillStyle = couleur;
+                    dessin.fillRect(x - 3, y - 3, 6, 6);
+                }
+
+                dessin.stroke();
+
+                let nom = groupe[0].nom_affiche;
+                let element = document.createElement("span");
+                element.style.color = couleur;
+                element.textContent = "■ " + cle + " - " + nom;
+                legende.appendChild(element);
+
+                numero++;
+            }
+
+            dessin.fillStyle = "#222";
+            dessin.fillText(maximum.toFixed(1) + " °C", 5, 25);
+            dessin.fillText(minimum.toFixed(1) + " °C", 5, canvas.height - 25);
+        } else {
+            dessin.fillText("Aucune mesure", 20, 30);
+        }
     </script>
 
     {% if actualisation_auto %}
-    <script>
-        setTimeout(function () {
-            location.reload();
-        }, {{ secondes }} * 1000);
-    </script>
+        <script>
+            setTimeout(function () {
+                location.reload();
+            }, {{ secondes }} * 1000);
+        </script>
     {% endif %}
 </body>
-
 </html>
