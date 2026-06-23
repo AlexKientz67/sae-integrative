@@ -1,8 +1,8 @@
 body {
     margin: 0;
     font-family: Arial, sans-serif;
-    color: #222;
-    background: #eef3f8;
+    color: #1f2937;
+    background: #e8f1fb;
 }
 
 main {
@@ -11,31 +11,49 @@ main {
     padding: 25px;
     background: white;
     border-radius: 12px;
-    box-shadow: 0 3px 15px #d5dce5;
+    box-shadow: 0 4px 18px #c9d6e3;
 }
 
 h1,
 h2 {
     margin-top: 25px;
-    color: #123;
+    color: #0f3d66;
+}
+
+h1 {
+    padding-bottom: 10px;
+    border-bottom: 3px solid #0f6db5;
+}
+
+h2 {
+    padding-left: 10px;
+    border-left: 4px solid #0f6db5;
 }
 
 nav {
     display: flex;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 10px;
     margin-bottom: 25px;
 }
 
 a {
-    color: #005bbb;
+    color: #0f6db5;
+}
+
+nav a {
+    padding: 8px 12px;
+    color: white;
+    text-decoration: none;
+    background: #0f6db5;
+    border-radius: 6px;
 }
 
 form {
     margin-bottom: 25px;
-    padding: 15px;
-    background: #f8fafc;
-    border: 1px solid #d8e0ea;
+    padding: 18px;
+    background: #f5f9fd;
+    border: 1px solid #c8d9ea;
     border-radius: 10px;
 }
 
@@ -52,7 +70,7 @@ label {
 input,
 select,
 button {
-    padding: 8px;
+    padding: 9px;
     font: inherit;
     border-radius: 6px;
 }
@@ -61,7 +79,8 @@ input,
 select {
     width: 100%;
     max-width: 350px;
-    border: 1px solid #aaa;
+    background: white;
+    border: 1px solid #a9bdd2;
     box-sizing: border-box;
 }
 
@@ -72,12 +91,12 @@ input[type="checkbox"] {
 button {
     color: white;
     cursor: pointer;
-    background: #005bbb;
+    background: #0f6db5;
     border: 0;
 }
 
 button:hover {
-    background: #004999;
+    background: #0a4f83;
 }
 
 .inline {
@@ -87,11 +106,13 @@ button:hover {
 
 .inline button {
     padding: 4px 7px;
-    background: #b42318;
+    background: #c0392b;
 }
 
 .table-scroll {
     overflow-x: auto;
+    border: 1px solid #d6e0ea;
+    border-radius: 8px;
 }
 
 table {
@@ -107,7 +128,7 @@ td {
 }
 
 th {
-    background: #005bbb;
+    background: #0f6db5;
     color: white;
 }
 
@@ -119,7 +140,7 @@ canvas {
     width: 100%;
     height: 300px;
     background: #fff;
-    border: 1px solid #ccd6e0;
+    border: 1px solid #c8d9ea;
     border-radius: 10px;
 }
 
@@ -128,6 +149,7 @@ canvas {
     flex-wrap: wrap;
     gap: 15px;
     margin-top: 10px;
+    margin-bottom: 20px;
 }
 
 @media (max-width: 700px) {
