@@ -16,47 +16,47 @@
             <a href="{% url 'export_csv' %}?{{ request.GET.urlencode }}">Exporter en CSV</a>
         </nav>
 
-        <h2>Filtres</h2>
-
         <form method="get">
-            <div class="form-grid">
-                <label>
-                    Maison
-                    <select name="house">
-                        <option value="">Toutes</option>
-                        {% for maison in maisons %}
-                            <option value="{{ maison.id }}" {% if filtre_maison == maison.id %}selected{% endif %}>
-                                {{ maison.nom }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </label>
+            <h2>Filtres</h2>
 
-                <label>
-                    Capteur
-                    <input type="search" name="sensor" value="{{ filtre_capteur }}">
-                </label>
+            <p>
+                <label>Maison</label>
+                <select name="house">
+                    <option value="">Toutes</option>
+                    {% for maison in maisons %}
+                        <option value="{{ maison.id }}" {% if filtre_maison == maison.id %}selected{% endif %}>
+                            {{ maison.nom }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </p>
 
-                <label>
-                    Date debut
-                    <input type="date" name="start" value="{{ filtre_debut }}">
-                </label>
+            <p>
+                <label>Capteur</label>
+                <input type="search" name="sensor" value="{{ filtre_capteur }}">
+            </p>
 
-                <label>
-                    Date fin
-                    <input type="date" name="end" value="{{ filtre_fin }}">
-                </label>
+            <p>
+                <label>Date debut</label>
+                <input type="date" name="start" value="{{ filtre_debut }}">
+            </p>
 
-                <label>
-                    Actualisation en secondes
-                    <input type="number" name="refresh" value="{{ secondes }}" min="5">
-                </label>
+            <p>
+                <label>Date fin</label>
+                <input type="date" name="end" value="{{ filtre_fin }}">
+            </p>
 
-                <label class="checkbox">
+            <p>
+                <label>Actualisation en secondes</label>
+                <input type="number" name="refresh" value="{{ secondes }}" min="5">
+            </p>
+
+            <p>
+                <label>
                     <input type="checkbox" name="auto_refresh" {% if actualisation_auto %}checked{% endif %}>
                     Actualisation automatique
                 </label>
-            </div>
+            </p>
 
             <button type="submit">Filtrer</button>
             <a href="{% url 'index' %}">Effacer les filtres</a>
@@ -123,13 +123,13 @@
 
     {{ mesures|json_script:"mesures-json" }}
     <script>
-        const mesures = JSON.parse(
+        let mesures = JSON.parse(
             document.getElementById("mesures-json").textContent
         );
-        const canvas = document.getElementById("graphique");
-        const dessin = canvas.getContext("2d");
-        const legende = document.getElementById("legende");
-        const couleurs = [
+        let canvas = document.getElementById("graphique");
+        let dessin = canvas.getContext("2d");
+        let legende = document.getElementById("legende");
+        let couleurs = [
             "#005bbb",
             "#d33f49",
             "#228b22",
@@ -141,36 +141,41 @@
         ];
 
         if (mesures.length > 0) {
-            const temperatures = mesures.map(function (mesure) {
-                return Number(mesure.temperature);
-            });
-            const minimum = Math.min(...temperatures) - 1;
-            const maximum = Math.max(...temperatures) + 1;
-            const largeur = canvas.width - 80;
-            const hauteur = canvas.height - 60;
-            const groupes = {};
+            let temperatures = [];
+            let groupes = {};
+            let largeur = canvas.width - 80;
+            let hauteur = canvas.height - 60;
 
-            mesures.forEach(function (mesure) {
-                const cle = mesure.maison_id + "-" + mesure.capteur_id;
+            for (let i = 0; i < mesures.length; i++) {
+                let mesure = mesures[i];
+                let cle = mesure.maison_id + "-" + mesure.capteur_id;
+
+                temperatures.push(Number(mesure.temperature));
 
                 if (!groupes[cle]) {
                     groupes[cle] = [];
                 }
 
                 groupes[cle].push(mesure);
-            });
+            }
 
-            Object.entries(groupes).forEach(function ([cle, groupe], numero) {
-                const couleur = couleurs[numero % couleurs.length];
+            let minimum = Math.min(...temperatures) - 1;
+            let maximum = Math.max(...temperatures) + 1;
+            let numero = 0;
+
+            for (let cle in groupes) {
+                let groupe = groupes[cle];
+                let couleur = couleurs[numero % couleurs.length];
                 groupe.reverse();
 
                 dessin.beginPath();
                 dessin.strokeStyle = couleur;
                 dessin.lineWidth = 2;
 
-                groupe.forEach(function (mesure, index) {
-                    const x = 50 + (index * largeur / Math.max(groupe.length - 1, 1));
-                    const y = 20 + hauteur - (
+                for (let index = 0; index < groupe.length; index++) {
+                    let mesure = groupe[index];
+                    let x = 50 + (index * largeur / Math.max(groupe.length - 1, 1));
+                    let y = 20 + hauteur - (
                         (Number(mesure.temperature) - minimum)
                         / (maximum - minimum)
                         * hauteur
@@ -184,16 +189,18 @@
 
                     dessin.fillStyle = couleur;
                     dessin.fillRect(x - 3, y - 3, 6, 6);
-                });
+                }
 
                 dessin.stroke();
 
-                const nom = groupe[0].nom_affiche;
-                const element = document.createElement("span");
+                let nom = groupe[0].nom_affiche;
+                let element = document.createElement("span");
                 element.style.color = couleur;
                 element.textContent = "■ " + cle + " - " + nom;
                 legende.appendChild(element);
-            });
+
+                numero++;
+            }
 
             dessin.fillStyle = "#222";
             dessin.fillText(maximum.toFixed(1) + " °C", 5, 25);

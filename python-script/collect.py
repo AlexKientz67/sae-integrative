@@ -13,4 +13,4 @@ client.connect("broker.hivemq.com", 1883)
 client.subscribe("IUT/Colmar2026/SAE2.04/Maison1")
 client.subscribe("IUT/Colmar2026/SAE2.04/Maison2")
 
-client.loop_forever()
+
