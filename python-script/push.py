@@ -31,14 +31,14 @@ for ligne in lignes:
 
         # Vérifie si le capteur existe
         cursor.execute(
-            "SELECT id FROM Capteur WHERE id=%s",
+            "SELECT id FROM saeapp_Capteur WHERE id=%s",
             (infos["Id"],)
         )
 
         if cursor.fetchone() is None:
             cursor.execute(
                 """
-                INSERT INTO Capteur
+                INSERT INTO saeapp_Capteur
                 (id, nom, piece, emplacement)
                 VALUES (%s,%s,%s,%s)
                 """,
@@ -56,9 +56,9 @@ for ligne in lignes:
         )
 
         if topic.endswith("Maison1"):
-            table = "MesureMaison1"
+            table = "saeapp_MesureMaison1"
         else:
-            table = "MesureMaison2"
+            table = "saeapp_MesureMaison2"
 
         cursor.execute(
             f"""
