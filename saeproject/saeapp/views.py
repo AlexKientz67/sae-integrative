@@ -8,6 +8,53 @@ from .forms import CapteurForm
 from .models import Capteur, MesureMaison1, MesureMaison2
 
 
+def preparer_graphique(mesures):
+    couleurs = [
+        "#005bbb",
+        "#d33f49",
+        "#228b22",
+        "#e67e22",
+        "#7b2cbf",
+        "#008b8b",
+        "#c2185b",
+        "#6b4f2c",
+    ]
+    groupes = {}
+    datasets = []
+
+    for mesure in reversed(mesures):
+        nom = mesure["maison"] + " - " + mesure["nom_affiche"]
+
+        if nom not in groupes:
+            groupes[nom] = []
+
+        groupes[nom].append(
+            {
+                "x": mesure["date"] + " " + mesure["heure"],
+                "y": mesure["temperature"],
+            }
+        )
+
+    numero = 0
+
+    for nom, valeurs in groupes.items():
+        couleur = couleurs[numero % len(couleurs)]
+
+        datasets.append(
+            {
+                "label": nom,
+                "data": valeurs,
+                "borderColor": couleur,
+                "backgroundColor": couleur,
+                "tension": 0.2,
+            }
+        )
+
+        numero += 1
+
+    return {"datasets": datasets}
+
+
 def index(request):
     mesures = filtrer_mesures(request)
     moyennes = calculer_moyennes(mesures)
@@ -36,6 +83,7 @@ def index(request):
         "actualisation_auto": request.GET.get("auto_refresh") == "on",
         "secondes": secondes,
         "nombre_mesures": len(mesures),
+        "graphique": preparer_graphique(mesures),
     }
 
     return render(request, "saeapp/index.html", contexte)

@@ -122,61 +122,16 @@
         </ul>
     </main>
 
-    {{ mesures|json_script:"mesures-json" }}
+    {{ graphique|json_script:"graphique-json" }}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        let mesures = JSON.parse(
-            document.getElementById("mesures-json").textContent
+        let graphique = JSON.parse(
+            document.getElementById("graphique-json").textContent
         );
-
-        let couleurs = [
-            "#005bbb",
-            "#d33f49",
-            "#228b22",
-            "#e67e22",
-            "#7b2cbf",
-            "#008b8b",
-            "#c2185b",
-            "#6b4f2c"
-        ];
-        let groupes = {};
-        let datasets = [];
-
-        for (let i = 0; i < mesures.length; i++) {
-            let mesure = mesures[i];
-            let nom = mesure.maison + " - " + mesure.nom_affiche;
-
-            if (!groupes[nom]) {
-                groupes[nom] = [];
-            }
-
-            groupes[nom].push({
-                x: mesure.date + " " + mesure.heure,
-                y: mesure.temperature
-            });
-        }
-
-        let numero = 0;
-
-        for (let nom in groupes) {
-            let couleur = couleurs[numero % couleurs.length];
-
-            datasets.push({
-                label: nom,
-                data: groupes[nom].reverse(),
-                borderColor: couleur,
-                backgroundColor: couleur,
-                tension: 0.2
-            });
-
-            numero++;
-        }
 
         new Chart(document.getElementById("graphique"), {
             type: "line",
-            data: {
-                datasets: datasets
-            },
+            data: graphique,
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
