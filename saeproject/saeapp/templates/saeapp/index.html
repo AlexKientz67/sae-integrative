@@ -63,8 +63,9 @@
         </form>
 
         <h2>Graphique des temperatures</h2>
-        <canvas id="graphique" width="1000" height="300"></canvas>
-        <div id="legende"></div>
+        <div class="graphique">
+            <canvas id="graphique"></canvas>
+        </div>
 
         <h2>Resultats</h2>
         <p>
@@ -122,13 +123,12 @@
     </main>
 
     {{ mesures|json_script:"mesures-json" }}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         let mesures = JSON.parse(
             document.getElementById("mesures-json").textContent
         );
-        let canvas = document.getElementById("graphique");
-        let dessin = canvas.getContext("2d");
-        let legende = document.getElementById("legende");
+
         let couleurs = [
             "#005bbb",
             "#d33f49",
@@ -139,75 +139,60 @@
             "#c2185b",
             "#6b4f2c"
         ];
+        let groupes = {};
+        let datasets = [];
 
-        if (mesures.length > 0) {
-            let temperatures = [];
-            let groupes = {};
-            let largeur = canvas.width - 80;
-            let hauteur = canvas.height - 60;
+        for (let i = 0; i < mesures.length; i++) {
+            let mesure = mesures[i];
+            let nom = mesure.maison + " - " + mesure.nom_affiche;
 
-            for (let i = 0; i < mesures.length; i++) {
-                let mesure = mesures[i];
-                let cle = mesure.maison_id + "-" + mesure.capteur_id;
-
-                temperatures.push(Number(mesure.temperature));
-
-                if (!groupes[cle]) {
-                    groupes[cle] = [];
-                }
-
-                groupes[cle].push(mesure);
+            if (!groupes[nom]) {
+                groupes[nom] = [];
             }
 
-            let minimum = Math.min(...temperatures) - 1;
-            let maximum = Math.max(...temperatures) + 1;
-            let numero = 0;
-
-            for (let cle in groupes) {
-                let groupe = groupes[cle];
-                let couleur = couleurs[numero % couleurs.length];
-                groupe.reverse();
-
-                dessin.beginPath();
-                dessin.strokeStyle = couleur;
-                dessin.lineWidth = 2;
-
-                for (let index = 0; index < groupe.length; index++) {
-                    let mesure = groupe[index];
-                    let x = 50 + (index * largeur / Math.max(groupe.length - 1, 1));
-                    let y = 20 + hauteur - (
-                        (Number(mesure.temperature) - minimum)
-                        / (maximum - minimum)
-                        * hauteur
-                    );
-
-                    if (index === 0) {
-                        dessin.moveTo(x, y);
-                    } else {
-                        dessin.lineTo(x, y);
-                    }
-
-                    dessin.fillStyle = couleur;
-                    dessin.fillRect(x - 3, y - 3, 6, 6);
-                }
-
-                dessin.stroke();
-
-                let nom = groupe[0].nom_affiche;
-                let element = document.createElement("span");
-                element.style.color = couleur;
-                element.textContent = "■ " + cle + " - " + nom;
-                legende.appendChild(element);
-
-                numero++;
-            }
-
-            dessin.fillStyle = "#222";
-            dessin.fillText(maximum.toFixed(1) + " °C", 5, 25);
-            dessin.fillText(minimum.toFixed(1) + " °C", 5, canvas.height - 25);
-        } else {
-            dessin.fillText("Aucune mesure", 20, 30);
+            groupes[nom].push({
+                x: mesure.date + " " + mesure.heure,
+                y: mesure.temperature
+            });
         }
+
+        let numero = 0;
+
+        for (let nom in groupes) {
+            let couleur = couleurs[numero % couleurs.length];
+
+            datasets.push({
+                label: nom,
+                data: groupes[nom].reverse(),
+                borderColor: couleur,
+                backgroundColor: couleur,
+                tension: 0.2
+            });
+
+            numero++;
+        }
+
+        new Chart(document.getElementById("graphique"), {
+            type: "line",
+            data: {
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: "category"
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: "Temperature en °C"
+                        }
+                    }
+                }
+            }
+        });
     </script>
 
     {% if actualisation_auto %}
